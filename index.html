@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Sepiamusic" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <title>Sepiamusic</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --surface2: #2a2a2a;
+      --accent: #8B5CF6;
+      --text: #f5f5f0;
+      --muted: #777;
+    }
+
+    html, body {
+      height: 100%; width: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .screen {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 2rem 1.5rem; text-align: center;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .screen.hidden { opacity: 0; pointer-events: none; transform: scale(0.97); }
+
+    /* ── SHARED ── */
+    .logo {
+      font-weight: 700;
+      font-size: 3rem;
+      letter-spacing: -0.065em;
+      line-height: 1;
+      color: var(--accent);
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      padding: 1rem 2.5rem;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      width: 100%; max-width: 300px;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .btn-primary:active { opacity: 0.82; transform: scale(0.97); }
+
+    /* ── VINYL ── */
+    .vinyl {
+      width: 130px; height: 130px;
+      border-radius: 50%;
+      background: conic-gradient(#1a1a1a 0deg,#232323 30deg,#1a1a1a 60deg,#232323 90deg,#1a1a1a 120deg,#232323 150deg,#1a1a1a 180deg,#232323 210deg,#1a1a1a 240deg,#232323 270deg,#1a1a1a 300deg,#232323 330deg,#1a1a1a 360deg);
+      border: 3px solid #2a2a2a;
+      position: relative;
+      animation: spin 8s linear infinite;
+    }
+    .vinyl::after {
+      content: '';
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── HOME ── */
+    #home-screen { gap: 2rem; }
+    .tagline { font-size: 0.9rem; color: var(--muted); max-width: 230px; line-height: 1.7; }
+
+    /* ── SCANNER ── */
+    #scanner-screen { gap: 0; padding: 0; background: #000; }
+    #video-wrap {
+      position: relative; width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    #scanner-video { width: 100%; height: 100%; object-fit: cover; }
+    #viewfinder {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    .vf-label-top {
+      position: absolute;
+      top: max(env(safe-area-inset-top), 1.2rem);
+      left: 50%; transform: translateX(-50%);
+      font-weight: 700; font-size: 1.2rem; letter-spacing: -0.04em;
+      color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,0.9);
+      white-space: nowrap;
+    }
+    .vf-frame { width: 220px; height: 220px; position: relative; }
+    .vf-frame::before, .vf-frame::after, .vf-corner-bl, .vf-corner-br {
+      content: ''; position: absolute;
+      width: 36px; height: 36px;
+      border-color: var(--accent); border-style: solid;
+    }
+    .vf-frame::before { top:0; left:0;    border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+    .vf-frame::after  { top:0; right:0;   border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+    .vf-corner-bl     { bottom:0; left:0;  border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+    .vf-corner-br     { bottom:0; right:0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+    .vf-scan-line {
+      position: absolute; left: 4px; right: 4px; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      animation: scan 2s ease-in-out infinite;
+    }
+    @keyframes scan {
+      0%   { top: 4px; opacity: 1; }
+      90%  { top: calc(100% - 6px); opacity: 1; }
+      100% { top: calc(100% - 6px); opacity: 0; }
+    }
+    .vf-hint {
+      position: absolute;
+      bottom: max(env(safe-area-inset-bottom), 2.5rem);
+      left: 50%; transform: translateX(-50%);
+      font-size: 0.8rem; color: rgba(255,255,255,0.5);
+      text-align: center; white-space: nowrap; pointer-events: all;
+    }
+    .vf-cancel {
+      display: block; margin-top: 0.6rem;
+      color: rgba(255,255,255,0.45); font-size: 0.82rem;
+      text-decoration: underline; background: none; border: none; cursor: pointer;
+    }
+    #scan-flash {
+      position: absolute; inset: 0;
+      background: rgba(139,92,246,0.4);
+      opacity: 0; pointer-events: none; transition: opacity 0.15s;
+    }
+    #scan-flash.flash { opacity: 1; }
+
+    /* ── FLIP SCREEN ── */
+    #flip-screen { gap: 2.5rem; }
+    .flip-icon {
+      font-size: 5rem; line-height: 1;
+      animation: bob 2s ease-in-out infinite;
+    }
+    @keyframes bob {
+      0%,100% { transform: translateY(0) rotate(0deg); }
+      50%      { transform: translateY(-6px) rotate(180deg); }
+    }
+    .flip-title {
+      font-weight: 700; font-size: 1.9rem;
+      letter-spacing: -0.045em; line-height: 1.15;
+    }
+    .flip-sub {
+      font-size: 0.88rem; color: var(--muted);
+      max-width: 240px; line-height: 1.7;
+    }
+    .btn-secondary {
+      background: transparent; color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 50px; padding: 0.75rem 2rem;
+      font-family: inherit; font-size: 0.85rem;
+      cursor: pointer; width: 100%; max-width: 300px;
+    }
+
+    /* ── PLAYING SCREEN (nadie la ve — móvil boca abajo) ── */
+    #playing-screen { gap: 1.5rem; background: var(--bg); }
+    .spotify-embed { width: 100%; max-width: 340px; border-radius: 16px; overflow: hidden; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 5rem; left: 50%; transform: translateX(-50%);
+      background: #2a2a2a; color: var(--text);
+      padding: 0.6rem 1.2rem; border-radius: 20px;
+      font-size: 0.82rem; white-space: nowrap;
+      opacity: 0; transition: opacity 0.3s;
+      z-index: 200; pointer-events: none;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ══ HOME ══ -->
+<div class="screen" id="home-screen">
+  <div class="vinyl"></div>
+  <div class="logo">Sepiamusic</div>
+  <p class="tagline">Escanea el QR de la carta y colócala en tu línea del tiempo.</p>
+  <button class="btn-primary" id="scan-btn">Escanear QR</button>
+</div>
+
+<!-- ══ SCANNER ══ -->
+<div class="screen hidden" id="scanner-screen">
+  <div id="video-wrap">
+    <video id="scanner-video" playsinline muted autoplay></video>
+    <div id="viewfinder">
+      <span class="vf-label-top">Sepiamusic</span>
+      <div class="vf-frame">
+        <div class="vf-corner-bl"></div>
+        <div class="vf-corner-br"></div>
+        <div class="vf-scan-line"></div>
+      </div>
+      <div class="vf-hint">
+        Apunta al código QR de la carta
+        <button class="vf-cancel" onclick="stopScanner()">Cancelar</button>
+      </div>
+    </div>
+    <div id="scan-flash"></div>
+  </div>
+</div>
+
+<!-- ══ FLIP — única pantalla que ve el jugador ══ -->
+<div class="screen hidden" id="flip-screen">
+  <div class="flip-icon">📱</div>
+  <h2 class="flip-title">Gira el móvil<br>boca abajo</h2>
+  <p class="flip-sub">La canción empezará sola en cuanto lo pongas boca abajo. Tienes 30 segundos.</p>
+  <button class="btn-secondary" onclick="goHome()">Cancelar</button>
+</div>
+
+<!-- ══ PLAYING — móvil boca abajo, nadie la ve ══ -->
+<div class="screen hidden" id="playing-screen">
+  <div class="spotify-embed" id="embed-container"></div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+var currentTrackId = null;
+var videoStream = null;
+var scannerActive = false;
+var scanCanvas, scanCtx, scanRafId;
+var countdown30 = null;
+var listeningForFlip = false;
+var playbackStarted = false;
+
+/* ── UTILS ── */
+function showToast(msg, ms) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, ms || 2800);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.add('hidden'); });
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function goHome() {
+  stopAll();
+  showScreen('home-screen');
+}
+
+function stopAll() {
+  // Scanner
+  scannerActive = false;
+  if (scanRafId) { cancelAnimationFrame(scanRafId); scanRafId = null; }
+  if (videoStream) { videoStream.getTracks().forEach(function(t) { t.stop(); }); videoStream = null; }
+  // Proximity / orientation
+  listeningForFlip = false;
+  playbackStarted = false;
+  window.removeEventListener('deviceproximity', onProximityEvent);
+  window.removeEventListener('userproximity', onUserProximityEvent);
+  window.removeEventListener('deviceorientation', onOrientationFallback, true);
+  if (window._proxSensor) { try { window._proxSensor.stop(); } catch(e) {} window._proxSensor = null; }
+  // Countdown
+  if (countdown30) { clearInterval(countdown30); countdown30 = null; }
+  // Stop audio
+  document.getElementById('embed-container').innerHTML = '';
+}
+
+/* ── SPOTIFY ── */
+function extractSpotifyId(raw) {
+  try {
+    var u = new URL(raw);
+    var parts = u.pathname.split('/');
+    var idx = parts.indexOf('track');
+    if (idx !== -1 && parts[idx+1]) return parts[idx+1].split('?')[0];
+    var id = u.searchParams.get('id');
+    if (id) return id;
+  } catch(e) {}
+  var m = raw.match(/spotify[:/]+track[:/]+([A-Za-z0-9]+)/);
+  return m ? m[1] : null;
+}
+
+function setupEmbed(trackId) {
+  document.getElementById('embed-container').innerHTML =
+    '<iframe src="https://open.spotify.com/embed/track/' + trackId +
+    '?utm_source=generator&theme=0&autoplay=1" width="100%" height="152" frameborder="0"' +
+    ' allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"' +
+    ' style="display:block; border-radius:16px;" loading="lazy"></iframe>';
+}
+
+/* ── SCANNER ── */
+function startScanner() {
+  stopAll();
+  showScreen('scanner-screen');
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+  }).then(function(stream) {
+    videoStream = stream;
+    var video = document.getElementById('scanner-video');
+    video.srcObject = stream;
+    video.play().then(function() {
+      if (!scanCanvas) {
+        scanCanvas = document.createElement('canvas');
+        scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
+      }
+      scannerActive = true;
+      requestAnimationFrame(scanFrame);
+    });
+  }).catch(function() {
+    showScreen('home-screen');
+    showToast('No se pudo acceder a la cámara');
+  });
+}
+
+function scanFrame() {
+  if (!scannerActive) return;
+  var video = document.getElementById('scanner-video');
+  if (video.readyState < 2) { scanRafId = requestAnimationFrame(scanFrame); return; }
+  var w = video.videoWidth, h = video.videoHeight;
+  if (!w || !h) { scanRafId = requestAnimationFrame(scanFrame); return; }
+  scanCanvas.width = w; scanCanvas.height = h;
+  scanCtx.drawImage(video, 0, 0, w, h);
+  var code = jsQR(scanCtx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' });
+  if (code && code.data) { onQRDetected(code.data); return; }
+  scanRafId = requestAnimationFrame(scanFrame);
+}
+
+function stopScanner() {
+  scannerActive = false;
+  if (scanRafId) { cancelAnimationFrame(scanRafId); scanRafId = null; }
+  if (videoStream) { videoStream.getTracks().forEach(function(t) { t.stop(); }); videoStream = null; }
+}
+
+/* ── QR DETECTED ── */
+function onQRDetected(raw) {
+  scannerActive = false;
+  var flash = document.getElementById('scan-flash');
+  flash.classList.add('flash');
+  setTimeout(function() { flash.classList.remove('flash'); }, 280);
+  setTimeout(function() { stopScanner(); }, 350);
+
+  var trackId = extractSpotifyId(raw);
+  if (!trackId) {
+    showToast('QR no reconocido como Spotify. Inténtalo de nuevo.');
+    setTimeout(startScanner, 2200);
+    return;
+  }
+
+  currentTrackId = trackId;
+  showFlipScreen();
+}
+
+/* ── FLIP SCREEN ── */
+function showFlipScreen() {
+  showScreen('flip-screen');
+  listeningForFlip = true;
+  playbackStarted = false;
+  startProximityWatch();
+}
+
+/* ── PROXIMITY / ORIENTATION DETECTION ── */
+function startProximityWatch() {
+  // 1. Generic Sensor API (Chromium Android WebView)
+  if (typeof ProximitySensor !== 'undefined') {
+    try {
+      var s = new ProximitySensor();
+      s.addEventListener('reading', function() { handleFlip(s.near); });
+      s.start();
+      window._proxSensor = s;
+      return;
+    } catch(e) {}
+  }
+  // 2. deviceproximity (Firefox / older Android)
+  if ('ondeviceproximity' in window) {
+    window.addEventListener('deviceproximity', onProximityEvent);
+    return;
+  }
+  // 3. userproximity
+  if ('onuserproximity' in window) {
+    window.addEventListener('userproximity', onUserProximityEvent);
+    return;
+  }
+  // 4. Fallback: giroscopio — beta > 160 o < -20 = boca abajo
+  window.addEventListener('deviceorientation', onOrientationFallback, true);
+}
+
+function onProximityEvent(e) { handleFlip(e.value < 5); }
+function onUserProximityEvent(e) { handleFlip(e.near); }
+function onOrientationFallback(e) {
+  if (e.beta === null) return;
+  handleFlip(e.beta < -20 || e.beta > 160);
+}
+
+function handleFlip(isFaceDown) {
+  if (!listeningForFlip || playbackStarted) return;
+  if (!isFaceDown) return;
+  playbackStarted = true;
+  listeningForFlip = false;
+  // Detener listeners de orientación — ya no hacen falta
+  window.removeEventListener('deviceproximity', onProximityEvent);
+  window.removeEventListener('userproximity', onUserProximityEvent);
+  window.removeEventListener('deviceorientation', onOrientationFallback, true);
+  if (window._proxSensor) { try { window._proxSensor.stop(); } catch(e) {} window._proxSensor = null; }
+  startPlayback();
+}
+
+/* ── PLAYBACK — 30 segundos, móvil boca abajo, pantalla irrelevante ── */
+function startPlayback() {
+  showScreen('playing-screen');
+  setupEmbed(currentTrackId);
+
+  var remaining = 30;
+  countdown30 = setInterval(function() {
+    remaining--;
+    if (remaining <= 0) {
+      clearInterval(countdown30);
+      countdown30 = null;
+      finishPlayback();
+    }
+  }, 1000);
+}
+
+function finishPlayback() {
+  document.getElementById('embed-container').innerHTML = '';
+  showScreen('home-screen');
+}
+
+/* ── URL PARAMS (cuando el QR apunta directamente a la app) ── */
+function checkUrlParams() {
+  var id = extractSpotifyId(window.location.href);
+  if (!id) {
+    var p = new URLSearchParams(window.location.search);
+    id = p.get('id');
+  }
+  if (id) { currentTrackId = id; showFlipScreen(); }
+}
+
+/* ── INIT ── */
+checkUrlParams();
+document.getElementById('scan-btn').addEventListener('click', startScanner);
+</script>
+</body>
+</html>
