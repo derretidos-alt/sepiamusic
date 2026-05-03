@@ -231,15 +231,15 @@
 <div class="screen hidden" id="playing-screen">
   <div style="position:relative; width:100%; max-width:340px;">
     <div class="spotify-embed" id="embed-container"></div>
-    <!-- Máscara: tapa todo excepto hueco en el botón de play -->
+    <!-- Máscara: tapa todo excepto franja derecha x:280-350 donde está el play -->
     <div style="
       position:absolute; inset:0;
       border-radius:16px;
       overflow:hidden;
       pointer-events:none;
       background: var(--bg);
-      -webkit-mask-image: radial-gradient(circle 30px at 510px 695px, transparent 100%, black 100%);
-      mask-image: radial-gradient(circle 30px at 510px 695px, transparent 100%, black 100%);
+      -webkit-mask-image: linear-gradient(to right, black 280px, transparent 280px, transparent 350px, black 350px);
+      mask-image: linear-gradient(to right, black 280px, transparent 280px, transparent 350px, black 350px);
     "></div>
   </div>
 </div>
