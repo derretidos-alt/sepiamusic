@@ -295,9 +295,14 @@ function extractSpotifyId(raw) {
   return m ? m[1] : null;
 }
 
-function openSpotify(trackId) {
-  // Open Spotify app directly via deeplink — bypasses all autoplay restrictions
-  window.location.href = 'spotify://track/' + trackId;
+function setupEmbed(trackId) {
+  var container = document.getElementById('embed-container');
+  container.innerHTML = '<iframe id="spotify-iframe"' +
+    ' src="https://open.spotify.com/embed/track/' + trackId +
+    '?utm_source=generator&theme=0&autoplay=1"' +
+    ' width="100%" height="152" frameborder="0"' +
+    ' allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"' +
+    ' style="display:block; border-radius:16px;"></iframe>';
 }
 
 /* ── SCANNER ── */
@@ -416,11 +421,10 @@ function handleFlip(isFaceDown) {
   startPlayback();
 }
 
-/* ── PLAYBACK — 30 segundos, Spotify abierto en app nativa ── */
+/* ── PLAYBACK — 30 segundos, embed dentro de la WebView ── */
 function startPlayback() {
-  // Open Spotify app with the track
-  openSpotify(currentTrackId);
-  // Start 30s countdown — after which we return to home
+  showScreen('playing-screen');
+  setupEmbed(currentTrackId);
   var remaining = 30;
   countdown30 = setInterval(function() {
     remaining--;
