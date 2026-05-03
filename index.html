@@ -224,8 +224,6 @@
   <div class="flip-icon">📱</div>
   <h2 class="flip-title">Gira el móvil<br>boca abajo</h2>
   <p class="flip-sub">La canción empezará sola en cuanto lo pongas boca abajo. Tienes 30 segundos.</p>
-  <!-- Embed precargado, invisible hasta que el móvil se gira -->
-  <div id="embed-preload" style="position:absolute; opacity:0; pointer-events:none; width:1px; height:1px; overflow:hidden;"></div>
   <button class="btn-secondary" onclick="goHome()">Cancelar</button>
 </div>
 
@@ -280,7 +278,7 @@ function stopAll() {
   if (countdown30) { clearInterval(countdown30); countdown30 = null; }
   // Stop audio
   document.getElementById('embed-container').innerHTML = '';
-  document.getElementById('embed-preload').innerHTML = '';
+
 }
 
 /* ── SPOTIFY ── */
@@ -297,37 +295,9 @@ function extractSpotifyId(raw) {
   return m ? m[1] : null;
 }
 
-function setupEmbed(trackId) {
-  // Preload embed invisibly so it's ready when the phone flips
-  var iframe = document.createElement('iframe');
-  iframe.src = 'https://open.spotify.com/embed/track/' + trackId +
-    '?utm_source=generator&theme=0&autoplay=0';
-  iframe.width = '300';
-  iframe.height = '152';
-  iframe.frameBorder = '0';
-  iframe.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
-  iframe.style.cssText = 'display:block; border-radius:16px;';
-  iframe.id = 'spotify-iframe';
-  document.getElementById('embed-preload').appendChild(iframe);
-}
-
-function triggerPlay() {
-  // Move iframe to visible container and click play
-  var iframe = document.getElementById('spotify-iframe');
-  if (!iframe) return;
-  var container = document.getElementById('embed-container');
-  container.innerHTML = '';
-  iframe.style.cssText = 'display:block; border-radius:16px; width:100%; height:152px;';
-  container.appendChild(iframe);
-  // Click play button inside iframe via postMessage (Spotify embed API)
-  setTimeout(function() {
-    try { iframe.contentWindow.postMessage({ command: 'play' }, '*'); } catch(e) {}
-    // Fallback: simulate click on the iframe
-    try {
-      var clickEvent = new MouseEvent('click', { bubbles: true, cancelable: true });
-      iframe.dispatchEvent(clickEvent);
-    } catch(e) {}
-  }, 200);
+function openSpotify(trackId) {
+  // Open Spotify app directly via deeplink — bypasses all autoplay restrictions
+  window.location.href = 'spotify://track/' + trackId;
 }
 
 /* ── SCANNER ── */
@@ -397,8 +367,6 @@ function showFlipScreen() {
   showScreen('flip-screen');
   listeningForFlip = true;
   playbackStarted = false;
-  // Preload embed while user sees the flip screen
-  setupEmbed(currentTrackId);
   startProximityWatch();
 }
 
@@ -448,11 +416,11 @@ function handleFlip(isFaceDown) {
   startPlayback();
 }
 
-/* ── PLAYBACK — 30 segundos, móvil boca abajo, pantalla irrelevante ── */
+/* ── PLAYBACK — 30 segundos, Spotify abierto en app nativa ── */
 function startPlayback() {
-  showScreen('playing-screen');
-  triggerPlay();
-
+  // Open Spotify app with the track
+  openSpotify(currentTrackId);
+  // Start 30s countdown — after which we return to home
   var remaining = 30;
   countdown30 = setInterval(function() {
     remaining--;
