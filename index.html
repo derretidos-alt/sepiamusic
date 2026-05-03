@@ -227,37 +227,22 @@
   <button class="btn-secondary" onclick="goHome()">Cancelar</button>
 </div>
 
-<!-- ══ PLAYING — móvil boca abajo, nadie la ve ══ -->
+<!-- ══ PLAYING ══ -->
 <div class="screen hidden" id="playing-screen">
   <div style="position:relative; width:100%; max-width:340px;">
-    <!-- Embed de Spotify -->
     <div class="spotify-embed" id="embed-container"></div>
-    <!-- Máscara que tapa todo excepto el botón de play -->
+    <!-- DIAGNOSTIC OVERLAY: semitransparent grid to locate play button -->
     <div id="play-mask" style="
       position:absolute; inset:0;
       border-radius:16px;
       overflow:hidden;
       pointer-events:none;
     ">
-      <!-- Capa oscura encima -->
-      <div style="
-        position:absolute; inset:0;
-        background:var(--bg);
-        /* hueco circular centrado donde está el botón de play ~60px desde arriba, centrado */
-        -webkit-mask-image: radial-gradient(circle 28px at 50% 62px, transparent 100%, black 100%);
-        mask-image: radial-gradient(circle 28px at 50% 62px, transparent 100%, black 100%);
-      "></div>
+      <!-- Semi-transparent dark layer -->
+      <div style="position:absolute; inset:0; background:rgba(0,0,0,0.55);"></div>
+      <!-- Grid lines every 10px -->
+      <canvas id="grid-canvas" style="position:absolute; inset:0; width:100%; height:100%;"></canvas>
     </div>
-    <!-- Texto instructivo encima del hueco -->
-    <p style="
-      position:absolute;
-      top: 100px;
-      left:0; right:0;
-      text-align:center;
-      font-size:0.78rem;
-      color:var(--muted);
-      pointer-events:none;
-    ">Pulsa play para escuchar</p>
   </div>
 </div>
 
@@ -332,6 +317,7 @@ function setupEmbed(trackId) {
     ' width="100%" height="152" frameborder="0"' +
     ' allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"' +
     ' style="display:block; border-radius:16px;"></iframe>';
+  setTimeout(drawGrid, 500);
 }
 
 /* ── SCANNER ── */
@@ -393,7 +379,7 @@ function onQRDetected(raw) {
   }
 
   currentTrackId = trackId;
-  showFlipScreen();
+  startPlayback();
 }
 
 /* ── FLIP SCREEN ── */
@@ -477,12 +463,50 @@ function checkUrlParams() {
     var p = new URLSearchParams(window.location.search);
     id = p.get('id');
   }
-  if (id) { currentTrackId = id; showFlipScreen(); }
+  if (id) { currentTrackId = id; startPlayback(); }
 }
 
 /* ── INIT ── */
 checkUrlParams();
 document.getElementById('scan-btn').addEventListener('click', startScanner);
+
+/* ── DIAGNOSTIC GRID ── */
+function drawGrid() {
+  var canvas = document.getElementById('grid-canvas');
+  if (!canvas) return;
+  var w = canvas.offsetWidth;
+  var h = canvas.offsetHeight;
+  canvas.width = w;
+  canvas.height = h;
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+
+  // Grid lines every 10px
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 0.5;
+  for (var x = 0; x <= w; x += 10) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (var y = 0; y <= h; y += 10) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  // Thicker lines every 50px
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 1;
+  for (var x2 = 0; x2 <= w; x2 += 50) {
+    ctx.beginPath(); ctx.moveTo(x2, 0); ctx.lineTo(x2, h); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,0,0.9)';
+    ctx.font = '8px monospace';
+    ctx.fillText(x2, x2 + 2, 8);
+  }
+  for (var y2 = 0; y2 <= h; y2 += 50) {
+    ctx.beginPath(); ctx.moveTo(0, y2); ctx.lineTo(w, y2); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,0,0.9)';
+    ctx.font = '8px monospace';
+    ctx.fillText(y2, 2, y2 - 2);
+  }
+}
 </script>
 </body>
 </html>
