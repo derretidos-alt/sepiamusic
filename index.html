@@ -242,6 +242,7 @@
       mask-image: linear-gradient(to right, black 280px, transparent 280px, transparent 350px, black 350px);
     "></div>
   </div>
+  <button class="btn-primary" style="margin-top:2rem;" onclick="goHome()">Escanear siguiente carta</button>
 </div>
 
 <div id="toast"></div>
@@ -252,7 +253,6 @@ var currentTrackId = null;
 var videoStream = null;
 var scannerActive = false;
 var scanCanvas, scanCtx, scanRafId;
-var countdown30 = null;
 var listeningForFlip = false;
 var playbackStarted = false;
 
@@ -287,7 +287,6 @@ function stopAll() {
   window.removeEventListener('deviceorientation', onOrientationFallback, true);
   if (window._proxSensor) { try { window._proxSensor.stop(); } catch(e) {} window._proxSensor = null; }
   // Countdown
-  if (countdown30) { clearInterval(countdown30); countdown30 = null; }
   // Stop audio
   document.getElementById('embed-container').innerHTML = '';
 
@@ -433,25 +432,13 @@ function handleFlip(isFaceDown) {
   startPlayback();
 }
 
-/* ── PLAYBACK — 30 segundos, embed dentro de la WebView ── */
+/* ── PLAYBACK ── */
 function startPlayback() {
   showScreen('playing-screen');
   setupEmbed(currentTrackId);
-  var remaining = 30;
-  countdown30 = setInterval(function() {
-    remaining--;
-    if (remaining <= 0) {
-      clearInterval(countdown30);
-      countdown30 = null;
-      finishPlayback();
-    }
-  }, 1000);
 }
 
-function finishPlayback() {
-  document.getElementById('embed-container').innerHTML = '';
-  showScreen('home-screen');
-}
+
 
 /* ── URL PARAMS (cuando el QR apunta directamente a la app) ── */
 function checkUrlParams() {
