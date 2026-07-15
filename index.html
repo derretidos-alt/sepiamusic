@@ -19,6 +19,8 @@
       --accent: #8B5CF6;
       --text: #f5f5f0;
       --muted: #777;
+      /* Ancho de la franja visible sobre el play de Spotify, anclada a la derecha */
+      --play-strip: 72px;
     }
 
     html, body {
@@ -62,6 +64,15 @@
       transition: opacity 0.15s, transform 0.15s;
     }
     .btn-primary:active { opacity: 0.82; transform: scale(0.97); }
+    .btn-secondary {
+      background: transparent; color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 50px; padding: 0.85rem 2rem;
+      font-family: inherit; font-size: 0.85rem;
+      cursor: pointer; width: 100%; max-width: 300px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .btn-secondary:active { color: var(--text); border-color: rgba(255,255,255,0.25); }
 
     /* ── VINYL ── */
     .vinyl {
@@ -81,6 +92,10 @@
       background: var(--accent);
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .vinyl { animation: none; }
+      .play-hint-ring { animation: none !important; }
+    }
 
     /* ── HOME ── */
     #home-screen { gap: 2rem; }
@@ -130,15 +145,17 @@
     }
     .vf-hint {
       position: absolute;
-      bottom: max(env(safe-area-inset-bottom), 2.5rem);
+      bottom: max(env(safe-area-inset-bottom), 2rem);
       left: 50%; transform: translateX(-50%);
-      font-size: 0.8rem; color: rgba(255,255,255,0.5);
+      font-size: 0.8rem; color: rgba(255,255,255,0.55);
       text-align: center; white-space: nowrap; pointer-events: all;
     }
     .vf-cancel {
-      display: block; margin-top: 0.6rem;
-      color: rgba(255,255,255,0.45); font-size: 0.82rem;
+      display: block;
+      margin: 0.5rem auto 0;
+      color: rgba(255,255,255,0.55); font-size: 0.9rem;
       text-decoration: underline; background: none; border: none; cursor: pointer;
+      padding: 0.75rem 1.5rem; /* área táctil amplia */
     }
     #scan-flash {
       position: absolute; inset: 0;
@@ -147,35 +164,59 @@
     }
     #scan-flash.flash { opacity: 1; }
 
-    /* ── FLIP SCREEN ── */
-    #flip-screen { gap: 2.5rem; }
-    .flip-icon {
-      font-size: 5rem; line-height: 1;
-      animation: bob 2s ease-in-out infinite;
+    /* ── PLAYING ── */
+    #playing-screen { gap: 1.75rem; }
+    .playing-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--accent);
+      font-weight: 500;
     }
-    @keyframes bob {
-      0%,100% { transform: translateY(0) rotate(0deg); }
-      50%      { transform: translateY(-6px) rotate(180deg); }
+    .player-wrap {
+      position: relative;
+      width: 100%; max-width: 340px;
+      border-radius: 16px;
+      /* borde sutil para que la caja tapada se lea como elemento intencional */
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.07);
     }
-    .flip-title {
-      font-weight: 700; font-size: 1.9rem;
-      letter-spacing: -0.045em; line-height: 1.15;
+    .spotify-embed { width: 100%; border-radius: 16px; overflow: hidden; }
+    /* Máscara anclada al borde DERECHO: funciona en cualquier ancho de pantalla,
+       porque Spotify ancla el botón de play a la derecha del embed */
+    .play-mask {
+      position: absolute; inset: 0;
+      border-radius: 16px;
+      overflow: hidden;
+      pointer-events: none;
+      background: var(--bg);
+      -webkit-mask-image: linear-gradient(to left, transparent 0, transparent var(--play-strip), black var(--play-strip));
+      mask-image: linear-gradient(to left, transparent 0, transparent var(--play-strip), black var(--play-strip));
     }
-    .flip-sub {
-      font-size: 0.88rem; color: var(--muted);
-      max-width: 240px; line-height: 1.7;
+    /* Anillo-guía pulsante sobre la zona del play (visual, no bloquea el tap) */
+    .play-hint-ring {
+      position: absolute;
+      right: calc(var(--play-strip) / 2);
+      bottom: 44px;
+      width: 56px; height: 56px;
+      transform: translateX(50%);
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: pulse-ring 1.8s ease-out infinite;
+      opacity: 0.85;
     }
-    .btn-secondary {
-      background: transparent; color: var(--muted);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 50px; padding: 0.75rem 2rem;
-      font-family: inherit; font-size: 0.85rem;
-      cursor: pointer; width: 100%; max-width: 300px;
+    @keyframes pulse-ring {
+      0%   { transform: translateX(50%) scale(0.85); opacity: 0.85; }
+      70%  { transform: translateX(50%) scale(1.18); opacity: 0; }
+      100% { transform: translateX(50%) scale(1.18); opacity: 0; }
     }
-
-    /* ── PLAYING SCREEN (nadie la ve — móvil boca abajo) ── */
-    #playing-screen { gap: 1.5rem; background: var(--bg); }
-    .spotify-embed { width: 100%; max-width: 340px; border-radius: 16px; overflow: hidden; }
+    .play-instruction {
+      font-size: 0.88rem;
+      color: var(--muted);
+      max-width: 250px;
+      line-height: 1.6;
+    }
+    .play-instruction strong { color: var(--text); font-weight: 500; }
 
     /* ── TOAST ── */
     #toast {
@@ -212,51 +253,39 @@
       </div>
       <div class="vf-hint">
         Apunta al código QR de la carta
-        <button class="vf-cancel" onclick="stopScanner()">Cancelar</button>
+        <button class="vf-cancel" onclick="goHome()">Cancelar</button>
       </div>
     </div>
     <div id="scan-flash"></div>
   </div>
 </div>
 
-<!-- ══ FLIP — única pantalla que ve el jugador ══ -->
-<div class="screen hidden" id="flip-screen">
-  <div class="flip-icon">📱</div>
-  <h2 class="flip-title">Gira el móvil<br>boca abajo</h2>
-  <p class="flip-sub">La canción empezará sola en cuanto lo pongas boca abajo. Tienes 30 segundos.</p>
-  <button class="btn-secondary" onclick="goHome()">Cancelar</button>
-</div>
-
 <!-- ══ PLAYING ══ -->
 <div class="screen hidden" id="playing-screen">
-  <div style="position:relative; width:100%; max-width:340px;">
+  <span class="playing-label">♪ Carta cargada</span>
+  <div class="player-wrap">
     <div class="spotify-embed" id="embed-container"></div>
-    <!-- Máscara: tapa todo excepto franja derecha x:280-350 donde está el play -->
-    <div style="
-      position:absolute; inset:0;
-      border-radius:16px;
-      overflow:hidden;
-      pointer-events:none;
-      background: var(--bg);
-      -webkit-mask-image: linear-gradient(to right, black 280px, transparent 280px, transparent 350px, black 350px);
-      mask-image: linear-gradient(to right, black 280px, transparent 280px, transparent 350px, black 350px);
-    "></div>
+    <div class="play-mask"></div>
+    <div class="play-hint-ring"></div>
   </div>
-  <button class="btn-primary" style="margin-top:2rem;" onclick="goHome()">Escanear siguiente carta</button>
+  <p class="play-instruction">Pulsa el <strong>play</strong> del círculo para escuchar la muestra</p>
+  <button class="btn-primary" onclick="startScanner()">Escanear siguiente carta</button>
+  <button class="btn-secondary" onclick="goHome()">Inicio</button>
 </div>
 
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
+/* ══════════ STATE ══════════ */
 var currentTrackId = null;
 var videoStream = null;
 var scannerActive = false;
+var scannerStarting = false;      // guard contra doble tap
 var scanCanvas, scanCtx, scanRafId;
-var listeningForFlip = false;
-var playbackStarted = false;
+var lastInvalidToast = 0;         // throttle de avisos de QR inválido
 
-/* ── UTILS ── */
+/* ══════════ UTILS ══════════ */
 function showToast(msg, ms) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -275,54 +304,54 @@ function goHome() {
 }
 
 function stopAll() {
-  // Scanner
-  scannerActive = false;
-  if (scanRafId) { cancelAnimationFrame(scanRafId); scanRafId = null; }
-  if (videoStream) { videoStream.getTracks().forEach(function(t) { t.stop(); }); videoStream = null; }
-  // Proximity / orientation
-  listeningForFlip = false;
-  playbackStarted = false;
-  window.removeEventListener('deviceproximity', onProximityEvent);
-  window.removeEventListener('userproximity', onUserProximityEvent);
-  window.removeEventListener('deviceorientation', onOrientationFallback, true);
-  if (window._proxSensor) { try { window._proxSensor.stop(); } catch(e) {} window._proxSensor = null; }
-  // Countdown
-  // Stop audio
+  stopScanner();
+  currentTrackId = null;
   document.getElementById('embed-container').innerHTML = '';
-
 }
 
-/* ── SPOTIFY ── */
+/* ══════════ SPOTIFY ══════════ */
 function extractSpotifyId(raw) {
   try {
     var u = new URL(raw);
+    // Formato 1: https://open.spotify.com/track/ID  (o /intl-xx/track/ID)
     var parts = u.pathname.split('/');
     var idx = parts.indexOf('track');
-    if (idx !== -1 && parts[idx+1]) return parts[idx+1].split('?')[0];
+    if (idx !== -1 && parts[idx + 1]) return parts[idx + 1].split('?')[0];
+    // Formato 2: URL de la app con ?id=ID
     var id = u.searchParams.get('id');
     if (id) return id;
-  } catch(e) {}
+  } catch (e) {}
+  // Formato 3: URI spotify:track:ID
   var m = raw.match(/spotify[:/]+track[:/]+([A-Za-z0-9]+)/);
   return m ? m[1] : null;
 }
 
+function isValidTrackId(id) {
+  return /^[A-Za-z0-9]{15,30}$/.test(id);
+}
+
 function setupEmbed(trackId) {
   var container = document.getElementById('embed-container');
-  container.innerHTML = '<iframe id="spotify-iframe"' +
+  container.innerHTML = '<iframe' +
     ' src="https://open.spotify.com/embed/track/' + trackId +
-    '?utm_source=generator&theme=0&autoplay=0"' +
+    '?utm_source=generator&theme=0"' +
     ' width="100%" height="152" frameborder="0"' +
     ' allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"' +
     ' style="display:block; border-radius:16px;"></iframe>';
 }
 
-/* ── SCANNER ── */
+/* ══════════ SCANNER ══════════ */
 function startScanner() {
+  if (scannerStarting || scannerActive) return; // guard doble tap
+  scannerStarting = true;
+
   stopAll();
   showScreen('scanner-screen');
+
   navigator.mediaDevices.getUserMedia({
     video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
   }).then(function(stream) {
+    scannerStarting = false;
     videoStream = stream;
     var video = document.getElementById('scanner-video');
     video.srcObject = stream;
@@ -332,9 +361,10 @@ function startScanner() {
         scanCtx = scanCanvas.getContext('2d', { willReadFrequently: true });
       }
       scannerActive = true;
-      requestAnimationFrame(scanFrame);
+      scanRafId = requestAnimationFrame(scanFrame);
     });
   }).catch(function() {
+    scannerStarting = false;
     showScreen('home-screen');
     showToast('No se pudo acceder a la cámara');
   });
@@ -343,118 +373,76 @@ function startScanner() {
 function scanFrame() {
   if (!scannerActive) return;
   var video = document.getElementById('scanner-video');
-  if (video.readyState < 2) { scanRafId = requestAnimationFrame(scanFrame); return; }
+  if (video.readyState < 2 || !video.videoWidth) {
+    scanRafId = requestAnimationFrame(scanFrame);
+    return;
+  }
   var w = video.videoWidth, h = video.videoHeight;
-  if (!w || !h) { scanRafId = requestAnimationFrame(scanFrame); return; }
   scanCanvas.width = w; scanCanvas.height = h;
   scanCtx.drawImage(video, 0, 0, w, h);
   var code = jsQR(scanCtx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' });
-  if (code && code.data) { onQRDetected(code.data); return; }
+
+  if (code && code.data) {
+    var trackId = extractSpotifyId(code.data);
+    if (trackId && isValidTrackId(trackId)) {
+      onValidQR(trackId);
+      return; // detiene el bucle — onValidQR gestiona el resto
+    }
+    // QR leído pero no es de Spotify: avisa (throttled) y SIGUE escaneando
+    var now = Date.now();
+    if (now - lastInvalidToast > 3000) {
+      lastInvalidToast = now;
+      showToast('Ese QR no es de Spotify — prueba con otro');
+    }
+  }
   scanRafId = requestAnimationFrame(scanFrame);
 }
 
 function stopScanner() {
   scannerActive = false;
+  scannerStarting = false;
   if (scanRafId) { cancelAnimationFrame(scanRafId); scanRafId = null; }
-  if (videoStream) { videoStream.getTracks().forEach(function(t) { t.stop(); }); videoStream = null; }
+  if (videoStream) {
+    videoStream.getTracks().forEach(function(t) { t.stop(); });
+    videoStream = null;
+  }
 }
 
-/* ── QR DETECTED ── */
-function onQRDetected(raw) {
+/* ══════════ QR VÁLIDO ══════════ */
+function onValidQR(trackId) {
   scannerActive = false;
+
+  // Flash de confirmación
   var flash = document.getElementById('scan-flash');
   flash.classList.add('flash');
   setTimeout(function() { flash.classList.remove('flash'); }, 280);
-  setTimeout(function() { stopScanner(); }, 350);
 
-  var trackId = extractSpotifyId(raw);
-  if (!trackId) {
-    showToast('QR no reconocido como Spotify. Inténtalo de nuevo.');
-    setTimeout(startScanner, 2200);
-    return;
-  }
+  // Apagar cámara tras el flash
+  setTimeout(stopScanner, 350);
 
   currentTrackId = trackId;
   startPlayback();
 }
 
-/* ── FLIP SCREEN ── */
-function showFlipScreen() {
-  showScreen('flip-screen');
-  listeningForFlip = true;
-  playbackStarted = false;
-  startProximityWatch();
-}
-
-/* ── PROXIMITY / ORIENTATION DETECTION ── */
-function startProximityWatch() {
-  // 1. Generic Sensor API (Chromium Android WebView)
-  if (typeof ProximitySensor !== 'undefined') {
-    try {
-      var s = new ProximitySensor();
-      s.addEventListener('reading', function() { handleFlip(s.near); });
-      s.start();
-      window._proxSensor = s;
-      return;
-    } catch(e) {}
-  }
-  // 2. deviceproximity (Firefox / older Android)
-  if ('ondeviceproximity' in window) {
-    window.addEventListener('deviceproximity', onProximityEvent);
-    return;
-  }
-  // 3. userproximity
-  if ('onuserproximity' in window) {
-    window.addEventListener('userproximity', onUserProximityEvent);
-    return;
-  }
-  // 4. Fallback: giroscopio — beta > 160 o < -20 = boca abajo
-  window.addEventListener('deviceorientation', onOrientationFallback, true);
-}
-
-function onProximityEvent(e) { handleFlip(e.value < 5); }
-function onUserProximityEvent(e) { handleFlip(e.near); }
-function onOrientationFallback(e) {
-  if (e.beta === null) return;
-  handleFlip(e.beta < -20 || e.beta > 160);
-}
-
-function handleFlip(isFaceDown) {
-  if (!listeningForFlip || playbackStarted) return;
-  if (!isFaceDown) return;
-  playbackStarted = true;
-  listeningForFlip = false;
-  // Detener listeners de orientación — ya no hacen falta
-  window.removeEventListener('deviceproximity', onProximityEvent);
-  window.removeEventListener('userproximity', onUserProximityEvent);
-  window.removeEventListener('deviceorientation', onOrientationFallback, true);
-  if (window._proxSensor) { try { window._proxSensor.stop(); } catch(e) {} window._proxSensor = null; }
-  startPlayback();
-}
-
-/* ── PLAYBACK ── */
+/* ══════════ PLAYBACK ══════════ */
 function startPlayback() {
   showScreen('playing-screen');
   setupEmbed(currentTrackId);
 }
 
-
-
-/* ── URL PARAMS (cuando el QR apunta directamente a la app) ── */
+/* ══════════ URL PARAMS (QR que abre la app directamente) ══════════ */
 function checkUrlParams() {
-  var id = extractSpotifyId(window.location.href);
-  if (!id) {
-    var p = new URLSearchParams(window.location.search);
-    id = p.get('id');
+  var p = new URLSearchParams(window.location.search);
+  var id = p.get('id');
+  if (id && isValidTrackId(id)) {
+    currentTrackId = id;
+    startPlayback();
   }
-  if (id) { currentTrackId = id; startPlayback(); }
 }
 
-/* ── INIT ── */
+/* ══════════ INIT ══════════ */
 checkUrlParams();
 document.getElementById('scan-btn').addEventListener('click', startScanner);
-
-
 </script>
 </body>
 </html>
